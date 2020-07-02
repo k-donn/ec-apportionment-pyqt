@@ -22,9 +22,32 @@ class StateInfo(TypedDict):
 
 # list containing name and pop
 CsvStateInfo = List[str]
-# dict with all the plot's text objects
+
 PlotTextDict = Dict[str, Text]
+
+# class PlotTextDict(TypedDict):
+#     """dict with all the plot's text objects."""
+
+#     seat_txt: Text
+#     state_txt: Text
+#     mean_txt: Text
+#     std_dev_txt: Text
+#     range_txt: Text
+#     geo_mean_txt: Text
+
+
 # attribute objects related to plot graphics
 PlotProps = Tuple[BarContainer, Line2D, PlotTextDict]
-# relates state names to respective bar objects
+
 PlotBarsDict = Dict[str, BarContainer]
+
+
+# TypedDict still doesn't work nicely with pyright.
+# Calling .values() on a dist defaults to just object.
+# Type hinting for a custom class doesn't work
+# class PlotBarsDict(TypedDict):
+#     """Relates state names to respective bar objects."""
+
+#     plt_1_bars: BarContainer
+#     plt_2_bars: BarContainer
+#     plt_3_bars: BarContainer

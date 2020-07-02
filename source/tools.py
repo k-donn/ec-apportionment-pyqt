@@ -3,7 +3,7 @@ import csv
 import math
 from typing import Callable
 
-from .types import CsvStateInfo, StateInfo, List, Tuple
+from .types import CsvStateInfo, List, StateInfo, Tuple
 
 # TODO
 
