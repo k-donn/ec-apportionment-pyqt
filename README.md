@@ -37,9 +37,9 @@ python3.8 ./run.py
 
 From this [video](https://www.youtube.com/watch?v=6JN4RI7nkes).
 
-Update/Change the state population data by putting your own data into [`data/state-populations.csv`](https://github.com/k-donn/ec-apportionment/blob/master/data/state-populations.csv) or pass the new name of the file from the command line.
+Update/Change the state population data by putting your own data into [`data/state-populations.csv`](https://github.com/k-donn/ec-apportionment/blob/master/data/state-populations.csv).
 
-The CSV file should not have a header.
+The CSV file should have a header.
 
 ## TODO
 

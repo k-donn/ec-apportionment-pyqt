@@ -13,7 +13,7 @@ def parse_states(raw_csv: List[CsvStateInfo]) -> List[StateInfo]:
 
     Parameters
     ----------
-    raw_csv : `List[SimpleStateInfo]`
+    raw_csv : `List[CsvStateInfo]`
         The list of the population and name for each state
 
     Returns
@@ -57,7 +57,7 @@ def extract_csv(fname: str) -> List[CsvStateInfo]:
 
     Returns
     -------
-    `List[SimpleStateInfo]`
+    `List[CsvStateInfo]`
         The name and population of each state in the file
 
     """
@@ -89,12 +89,12 @@ def extract_state_names(state_info_list: List[StateInfo]) -> List[str]:
 
     Parameters
     ----------
-    state_info_list : List[StateInfo]
+    state_info_list : `List[StateInfo]`
         Continually updated list of state calculation info
 
     Returns
     -------
-    List[str]
+    `List[str]`
         A list of all names
     """
     state_names: List[str] = [state["name"] for state in state_info_list]
@@ -107,12 +107,12 @@ def extract_pop_per_rep(state_info_list: List[StateInfo]) -> List[float]:
 
     Parameters
     ----------
-    state_info_list : List[StateInfo]
+    state_info_list : `List[StateInfo]`
         Continually updated list of state calculation info
 
     Returns
     -------
-    List[float]
+    `List[float]`
         A list of all ratios
     """
     pop_per_rep_list: List[float] = [state["pop_per_rep"]
@@ -126,12 +126,12 @@ def extract_reps(state_info_list: List[StateInfo]) -> List[int]:
 
     Parameters
     ----------
-    state_info_list : List[StateInfo]
+    state_info_list : `List[StateInfo]`
         Continually updated list of state calculation info
 
     Returns
     -------
-    List[int]
+    `List[int]`
         A list of all priority values
     """
     reps_list: List[int] = [state["reps"] for state in state_info_list]
@@ -144,12 +144,12 @@ def extract_priority(state_info_list: List[StateInfo]) -> List[float]:
 
     Parameters
     ----------
-    state_info_list : List[StateInfo]
+    state_info_list : `List[StateInfo]`
         Continually updated list of state calculation info
 
     Returns
     -------
-    List[float]
+    `List[float]`
         A list of all priority values
     """
     priority_list: List[float] = [state["priority"]
@@ -171,12 +171,12 @@ def extract_priority_tuple(state_info_tuple: Tuple[int, StateInfo]) -> float:
 
     Parameters
     ----------
-    state_info_tuple : Tuple[int, StateInfo]
+    state_info_tuple : `Tuple[int, StateInfo]`
         The generated Tuple of StateInfo
 
     Returns
     -------
-    float
+    `float`
         The priority value of passed Tuple
     """
     return state_info_tuple[1]["priority"]

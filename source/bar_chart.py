@@ -140,13 +140,15 @@ class Plot(FigureCanvas):
     format_plt(self) -> None:
     init_anim_factory(self) -> Callable:
     animate(self, frame: int) -> List[Artist]:
+    # updating
     update_plt_1(self, frame: int) -> None:
     update_plt_2(self) -> None:
     update_plt_3(self) -> None:
     update_plt_4(self) -> None:
-    format_plt_1(self) -> None:
-    format_plt_2(self) -> None:
-    format_plt_3(self) -> None:
+    # formatting/init
+    format_plt_1(self) -> PlotProps:
+    format_plt_2(self) -> BarContainer:
+    format_plt_3(self) -> BarContainer:
     format_plt_4(self) -> None:
     ```
 
@@ -355,8 +357,6 @@ class Plot(FigureCanvas):
         ----------
         plt_2_bars : `BarContainer`
             The objects describing the plotted bars
-        state_info_list : `List[StateInfo]`
-            Continually updated list of state calculation info
 
         """
         for state, state_info in zip(
@@ -370,8 +370,6 @@ class Plot(FigureCanvas):
         ----------
         plt_3_bars : `BarContainer`
             The objects describing the plotted bars
-        state_info_list : `List[StateInfo]`
-            Continually updated list of state calculation info
 
         """
         for state, state_info in zip(
@@ -386,15 +384,6 @@ class Plot(FigureCanvas):
 
         Add the x & y ticks, format those ticks, set the title, draw the mean
         line, and place the text on the plot for the pop_per_rep plot.
-
-        Parameters
-        ----------
-        plt_1 : `Axes`
-            The object that describes the graph
-        x_vals : `List[int]`
-            The list of ints that shows the states' positions
-        state_info_list : `List[StateInfo]`
-            Continually updated list of state calculation info
 
         Returns
         -------
@@ -494,15 +483,6 @@ class Plot(FigureCanvas):
 
         Add the x & y ticks, format those ticks, set the title, and place the
         text on the plot for the priority num plot.
-
-        Parameters
-        ----------
-        plt_3 : `Axes`
-            The object that describes the graph
-        x_vals : `List[int]`
-            The list of ints that shows the states' position's
-        state_info_list : `List[StateInfo]`
-            Continually updated list of state calculation info
 
         Returns
         -------
