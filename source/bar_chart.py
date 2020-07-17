@@ -1,7 +1,6 @@
 """Module for creating bar_chart animation."""
 # TODO
 # Use QTimer animation
-# Add sizing variables
 # Validate CSV file
 
 
@@ -65,6 +64,7 @@ class App(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.file = ""
         self.title = "CGP Grey spreadsheet"
 
         self.init_w = 500
@@ -75,9 +75,9 @@ class App(QMainWindow):
 
         self.m: Plot
 
-        self.initUI()
+        self.init_ui()
 
-    def initUI(self) -> None:
+    def init_ui(self) -> None:
         """Create the initial window with button to open file and register event handlers."""
         self.setWindowTitle(self.title)
         self.setGeometry(0, 0, self.init_w, self.init_h)
@@ -137,6 +137,7 @@ class Plot(FigureCanvas):
     Methods
     -------
     ```python
+    setup_plt(self) -> None:
     format_plt(self) -> None:
     init_anim_factory(self) -> Callable:
     animate(self, frame: int) -> List[Artist]:
@@ -188,7 +189,7 @@ class Plot(FigureCanvas):
         self.rows: List[CsvStateInfo] = extract_csv(self.file)
         self.state_info_list: List[StateInfo] = parse_states(self.rows)
 
-        self.format_plt()
+        self.setup_plt()
 
         self.plt_1: Axes = self.fig.add_subplot(221)
         self.plt_2: Axes = self.fig.add_subplot(222)
@@ -202,13 +203,15 @@ class Plot(FigureCanvas):
         plt_3_bars: BarContainer = self.format_plt_3()
         self.format_plt_4()
 
+        self.format_plt()
+
         self.plt_bars_dict: PlotBarsDict = {"plt_1_bars": plt_1_bars,
                                             "plt_2_bars": plt_2_bars,
                                             "plt_3_bars": plt_3_bars}
 
         frames: int = 385
-        # This doesn't work if FuncAnimation isn't assigned to a value,
         #  therefore, add disable-unused for `anim`
+        # This doesn't work if FuncAnimation isn't assigned to a value,
         anim: Animation = animation.FuncAnimation(  # pylint: disable=unused-variable
             self.fig, self.animate,
             init_func=self.init_anim_factory(),
@@ -216,16 +219,13 @@ class Plot(FigureCanvas):
 
         self.show()
 
-    def format_plt(self) -> None:
-        """Format the plot after rendering."""
+    def setup_plt(self) -> None:
+        """Format the plot before rendering."""
         plt.style.use("seaborn-dark")
 
-        self.fig.subplots_adjust(top=0.955,
-                                 bottom=0.125,
-                                 left=0.095,
-                                 right=0.93,
-                                 hspace=0.365,
-                                 wspace=0.105)
+    def format_plt(self):
+        """Format the plot after rendering."""
+        self.fig.tight_layout()
 
     def init_anim_factory(self) -> Callable:
         """Create an init_anim function that returns the needed artists.
