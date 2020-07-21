@@ -178,13 +178,9 @@ class Plot(FigureCanvas):
 
         self.fig = Figure(figsize=(16, 9), dpi=100)
 
-        FigureCanvas.__init__(self, self.fig)
-        self.setParent(parent)
+        super().__init__(self.fig)
 
-        FigureCanvas.setSizePolicy(self,
-                                   QSizePolicy.Expanding,
-                                   QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
+        self.setParent(parent)
 
         self.rows: List[CsvStateInfo] = extract_csv(self.file)
         self.state_info_list: List[StateInfo] = parse_states(self.rows)
