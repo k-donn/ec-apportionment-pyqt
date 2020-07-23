@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QApplication
 from source import bar_chart
 
 if __name__ == "__main__":
-    parser: ArgumentParser = ArgumentParser(
+    parser = ArgumentParser(
         prog="python3.8 run.py",
         description="Show an animation of the Huntington–Hill apportionment method")
 
@@ -24,6 +24,5 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
 
-    # bar_chart.main(args.file, args.debug)
     ex = bar_chart.App()
     sys.exit(app.exec_())

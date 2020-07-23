@@ -1,6 +1,7 @@
 """Module for creating bar_chart animation."""
 # TODO
 # Use QTimer animation
+# Allow for restarting animation
 # Validate CSV file
 
 
@@ -24,17 +25,16 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.ticker import FuncFormatter, MultipleLocator
-from PyQt5 import QtWidgets
-from PyQt5.QtCore import QCoreApplication, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import (QFileDialog, QMainWindow, QPushButton, QShortcut,
-                             QSizePolicy)
+from PyQt5.QtCore import QCoreApplication, pyqtSlot
+from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtWidgets import (QAction, QFileDialog, QMainWindow, QPushButton,
+                             QShortcut, QVBoxLayout, QWidget)
 
 from .tools import (comma_format_int, extract_csv, extract_pop_per_rep,
                     extract_priority, extract_priority_tuple, extract_reps,
                     extract_state_names, parse_states)
-from .types import (BarContainer, CsvStateInfo, PlotBarsDict, PlotProps,
-                    PlotTextDict, StateInfo, Text)
+from .types import (CsvStateInfo, PlotBarsDict, PlotProps, PlotTextDict,
+                    StateInfo)
 
 
 class App(QMainWindow):
@@ -58,12 +58,13 @@ class App(QMainWindow):
     init_h: int
     btn_w: int
     btn_h: int
-    m: Plot
+    plots: Plot
     ```
     """
 
     def __init__(self):
         super().__init__()
+
         self.file = ""
         self.title = "CGP Grey spreadsheet"
 
@@ -73,20 +74,24 @@ class App(QMainWindow):
         self.btn_w = 150
         self.btn_h = 75
 
-        self.m: Plot
+        self.plots: Plot
+
+        self.menu_bar = self.menuBar()
+
+        self.file_menu = self.menu_bar.addMenu("&File")
 
         self.init_ui()
 
     def init_ui(self) -> None:
-        """Create the initial window with button to open file and register event handlers."""
+        """Create the initial window and register event handlers."""
         self.setWindowTitle(self.title)
         self.setGeometry(0, 0, self.init_w, self.init_h)
 
-        button = QPushButton("Select Data", self)
-        button.move(int(self.init_w / 2) - int(self.btn_w / 2),
-                    int(self.init_h / 2) - int(self.btn_h / 2))
-        button.resize(self.btn_w, self.btn_h)
-        button.clicked.connect(self.on_click)
+        self.button = QPushButton("Select Data", self)
+        self.button.move(int(self.init_w / 2) - int(self.btn_w / 2),
+                         int(self.init_h / 2) - int(self.btn_h / 2))
+        self.button.resize(self.btn_w, self.btn_h)
+        self.button.clicked.connect(self.on_click)
 
         self.shortcut_q = QShortcut(QKeySequence("Ctrl+Q"), self)
         self.shortcut_w = QShortcut(QKeySequence("Ctrl+W"), self)
@@ -101,9 +106,11 @@ class App(QMainWindow):
         """Create the file dialog and pass the name to plot_graphs."""
         options = QFileDialog.DontUseNativeDialog
         fname, _ = QFileDialog.getOpenFileName(
-            self, "Select File to Animate", "", "CSV Files (*.csv)", "", options)
+            self, "Select File to Animate", "",
+            "CSV Files (*.csv)", "", options)
         if fname:
             self.file = fname
+            self.button.deleteLater()
             self.plot_graphs()
 
     @pyqtSlot()
@@ -111,22 +118,36 @@ class App(QMainWindow):
         """Quit the application."""
         QCoreApplication.instance().quit()
 
+    @pyqtSlot()
+    def on_restart(self):
+        """Clear the Figure and go back to data selection screen."""
+        print("restarting")
+
     def plot_graphs(self) -> None:
         """Create the Plot with the opened file data."""
         self.showMaximized()
 
-        self.m = Plot(parent=self, file=self.file)
+        self.plots = Plot(parent=self, file=self.file)
 
-        toolbar = NavigationToolbar(self.m, self)
+        toolbar = NavigationToolbar(self.plots, self)
 
-        layout = QtWidgets.QVBoxLayout()
+        layout = QVBoxLayout()
+        widget = QWidget()
+
         layout.addWidget(toolbar)
-        layout.addWidget(self.m)
+        layout.addWidget(self.plots)
 
         # Create a placeholder widget to hold our toolbar and canvas.
-        widget = QtWidgets.QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+        restart = QAction(QIcon.fromTheme("edit-undo"), "&Restart",
+                          self)
+        restart.setShortcut("Ctrl+R")
+        restart.setStatusTip("Restart Plotting")
+        restart.triggered.connect(self.on_restart)
+
+        self.file_menu.addAction(restart)
 
         self.show()
 
@@ -187,6 +208,7 @@ class Plot(FigureCanvas):
 
         self.setup_plt()
 
+        # TODO: refactor into something like PlotBarsDict
         self.plt_1: Axes = self.fig.add_subplot(221)
         self.plt_2: Axes = self.fig.add_subplot(222)
         self.plt_3: Axes = self.fig.add_subplot(223)
@@ -206,9 +228,9 @@ class Plot(FigureCanvas):
                                             "plt_3_bars": plt_3_bars}
 
         frames: int = 385
-        #  therefore, add disable-unused for `anim`
+
         # This doesn't work if FuncAnimation isn't assigned to a value,
-        anim: Animation = animation.FuncAnimation(  # pylint: disable=unused-variable
+        anim = animation.FuncAnimation(
             self.fig, self.animate,
             init_func=self.init_anim_factory(),
             frames=frames, repeat=False, blit=True, interval=170)
@@ -226,8 +248,8 @@ class Plot(FigureCanvas):
     def init_anim_factory(self) -> Callable:
         """Create an init_anim function that returns the needed artists.
 
-        init_anim() doesn't allow for custom parameters to be passed. Therefore, we make them
-        here.
+        init_anim() doesn't allow for custom parameters to be passed.
+        Therefore, we make them here.
 
         Returns
         -------
@@ -250,7 +272,8 @@ class Plot(FigureCanvas):
             # All the containers for each of the states in each plot
             plot_containers = self.plt_bars_dict.values()
             bars: List[Rectangle] = [artist
-                                     for container in plot_containers for artist in container]
+                                     for container in plot_containers
+                                     for artist in container]
             txts: List[Text] = list(self.txt_dict.values())
 
             return [*bars, *txts, self.mean_line]
@@ -260,10 +283,10 @@ class Plot(FigureCanvas):
                 frame: int) -> List[Artist]:
         """Calculate the new priority values and reps in each state.
 
-        Called every frame of Matplotlib's `FuncAnimation`.This is passed the properties about
-        each of the subplots that we need to update and the previous frame's
-        finished calculations. This makes calls to other functions that update each
-        individual plot.
+        Called every frame of Matplotlib's `FuncAnimation`.
+        This is passed the properties of the subplots that
+        we need to update and the previous frame's finished calculations.
+        This makes calls to other functions that update each individual plot.
 
         Returns
         -------
@@ -280,11 +303,13 @@ class Plot(FigureCanvas):
 
         # This calculates the next state to give a rep in the next frame
         for state_info in self.state_info_list:
-            state_info["priority"] = (
-                state_info["pop"] *
-                (1 / math.sqrt((state_info["reps"] + 1) * ((state_info["reps"] + 1) - 1))))
-            state_info["pop_per_rep"] = state_info["pop"] / \
-                state_info["reps"]
+            reps = state_info["reps"]
+            fut_reps = state_info["reps"] + 1
+
+            pri_val = 1 / math.sqrt(reps * fut_reps)
+            state_info["priority"] = state_info["pop"] * pri_val
+
+            state_info["pop_per_rep"] = state_info["pop"] / state_info["reps"]
 
         max_index, _ = max(
             enumerate(self.state_info_list), key=extract_priority_tuple)
@@ -297,8 +322,9 @@ class Plot(FigureCanvas):
         self.update_plt_2()
         self.update_plt_3()
 
-        bars: List[Rectangle] = [artist for container in
-                                 self.plt_bars_dict.values() for artist in container]
+        bars: List[Rectangle] = [artist
+                                 for container in self.plt_bars_dict.values()
+                                 for artist in container]
         txts: List[Text] = list(self.txt_dict.values())
 
         return [*bars, *txts, self.mean_line]
@@ -390,7 +416,8 @@ class Plot(FigureCanvas):
         state_names = extract_state_names(self.state_info_list)
         pop_per_rep_list = extract_pop_per_rep(self.state_info_list)
 
-        plt_1_bars: BarContainer = self.plt_1.bar(self.x_vals, pop_per_rep_list,
+        plt_1_bars: BarContainer = self.plt_1.bar(self.x_vals,
+                                                  pop_per_rep_list,
                                                   align="center")
 
         self.plt_1.set_xticks(self.x_vals)
@@ -415,17 +442,27 @@ class Plot(FigureCanvas):
         geo_mean_pop_per_seat: float = geometric_mean(pop_per_rep_list)
 
         seat_txt = self.plt_1.text(
-            0.25, 0.75, f"Seat# 1", transform=self.plt_1.transAxes)
+            0.25, 0.75, "Seat# 1", transform=self.plt_1.transAxes)
+
         state_txt = self.plt_1.text(
             0.15, 0.85, "State: ", transform=self.plt_1.transAxes)
+
         mean_txt = self.plt_1.text(
-            0.45, 0.75, f"Mean: {mean_pop_per_seat:,.2f}", transform=self.plt_1.transAxes)
+            0.45, 0.75, f"Mean: {mean_pop_per_seat:,.2f}",
+            transform=self.plt_1.transAxes)
+
         std_dev_txt = self.plt_1.text(
-            0.35, 0.85, f"Std. Dev. {std_dev_pop_per_seat:,.2f}", transform=self.plt_1.transAxes)
+            0.35, 0.85, f"Std. Dev. {std_dev_pop_per_seat:,.2f}",
+            transform=self.plt_1.transAxes)
+
         range_txt = self.plt_1.text(
-            0.70, 0.75, f"Range: {range_pop_per_seat:,.2f}", transform=self.plt_1.transAxes)
+            0.70, 0.75, f"Range: {range_pop_per_seat:,.2f}",
+            transform=self.plt_1.transAxes)
+
         geo_mean_txt = self.plt_1.text(
-            0.6, 0.85, f"Geo. Mean: {geo_mean_pop_per_seat:,.2f}", transform=self.plt_1.transAxes)
+            0.6, 0.85, f"Geo. Mean: {geo_mean_pop_per_seat:,.2f}",
+            transform=self.plt_1.transAxes)
+
         mean_line: Line2D = self.plt_1.axhline(y=mean_pop_per_seat,
                                                xmin=0.0, xmax=1.0, color="r")
 
@@ -499,7 +536,8 @@ class Plot(FigureCanvas):
         self.plt_3.set_ylabel("Priority value")
         self.plt_3.set_yscale("log")
         self.plt_3.get_yaxis().set_major_formatter(y_formatter)
-        self.plt_3.text(0.3, 0.9, "Highlighted, is the state with the highest priority value",
+        self.plt_3.text(0.3, 0.9,
+                        "Highlighted, the state that received a rep",
                         transform=self.plt_3.transAxes)
 
         self.plt_3.grid(axis="y", which="major", lw=2)
@@ -517,6 +555,8 @@ class Plot(FigureCanvas):
         text on the plot for the empty text plot.
 
         """
-        self.plt_4.text(0.5, 0.5, "CGP Grey Electoral College Spreadsheet graphed.",
-                        transform=self.plt_4.transAxes, fontsize=20, horizontalalignment="center")
+        self.plt_4.text(0.5, 0.5,
+                        "CGP Grey Electoral College Spreadsheet graphed.",
+                        transform=self.plt_4.transAxes,
+                        fontsize=20, horizontalalignment="center")
         self.plt_4.axis("off")
