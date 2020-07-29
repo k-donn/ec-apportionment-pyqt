@@ -1,7 +1,6 @@
 """Module for creating bar_chart animation."""
 # TODO
-# Use QTimer animation
-# Allow for restarting animation
+# Add file->open menubar option
 # Validate CSV file
 
 
@@ -9,12 +8,11 @@ import math
 from statistics import geometric_mean
 from typing import Callable, List
 
-import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.animation import Animation
+from matplotlib.animation import FuncAnimation
 from matplotlib.artist import Artist
-from matplotlib.axes._subplots import Axes
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_qt5agg import \
     FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import \
@@ -25,10 +23,10 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.ticker import FuncFormatter, MultipleLocator
-from PyQt5.QtCore import QCoreApplication, pyqtSlot
+from PyQt5.QtCore import QCoreApplication, QRect, pyqtSlot
 from PyQt5.QtGui import QIcon, QKeySequence
-from PyQt5.QtWidgets import (QAction, QFileDialog, QMainWindow, QPushButton,
-                             QShortcut, QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (QAction, QDesktopWidget, QFileDialog, QMainWindow,
+                             QPushButton, QShortcut, QVBoxLayout, QWidget)
 
 from .tools import (comma_format_int, extract_csv, extract_pop_per_rep,
                     extract_priority, extract_priority_tuple, extract_reps,
@@ -47,18 +45,25 @@ class App(QMainWindow):
     ```python
     initUI(self) -> None:
     on_click(self) -> None:
-    on_ctrlq(self) -> None:
+    on_quit_key(self) -> None:
+    on_restart(self) -> None:
+    plot_graphs(self) -> None:
     ```
 
     Properties
     ----------
     ```python
+    file: str
     title: str
-    init_w: int
-    init_h: int
     btn_w: int
     btn_h: int
     plots: Plot
+    widget: QWidget
+    menu_bar: QMenuBar
+    file_menu: QAction
+    button: QPushButton
+    shortcut_q: QShortcut
+    shortcut_w: QShortcut
     ```
     """
 
@@ -68,13 +73,13 @@ class App(QMainWindow):
         self.file = ""
         self.title = "CGP Grey spreadsheet"
 
-        self.init_w = 500
-        self.init_h = 400
-
         self.btn_w = 150
         self.btn_h = 75
 
         self.plots: Plot
+
+        # The central widget
+        self.widget: QWidget
 
         self.menu_bar = self.menuBar()
 
@@ -85,11 +90,12 @@ class App(QMainWindow):
     def init_ui(self) -> None:
         """Create the initial window and register event handlers."""
         self.setWindowTitle(self.title)
-        self.setGeometry(0, 0, self.init_w, self.init_h)
+
+        screen_geo: QRect = QDesktopWidget().screenGeometry()
 
         self.button = QPushButton("Select Data", self)
-        self.button.move(int(self.init_w / 2) - int(self.btn_w / 2),
-                         int(self.init_h / 2) - int(self.btn_h / 2))
+        self.button.move((screen_geo.width() // 2) - (self.btn_w // 2),
+                         (screen_geo.height() // 2) - (self.btn_h // 2))
         self.button.resize(self.btn_w, self.btn_h)
         self.button.clicked.connect(self.on_click)
 
@@ -99,29 +105,45 @@ class App(QMainWindow):
         self.shortcut_q.activated.connect(self.on_quit_key)
         self.shortcut_w.activated.connect(self.on_quit_key)
 
-        self.show()
+        self.showMaximized()
 
     @pyqtSlot()
     def on_click(self) -> None:
         """Create the file dialog and pass the name to plot_graphs."""
         options = QFileDialog.DontUseNativeDialog
         fname, _ = QFileDialog.getOpenFileName(
-            self, "Select File to Animate", "",
-            "CSV Files (*.csv)", "", options)
+            parent=self, caption="Select File to Animate", directory="",
+            filter="CSV Files (*.csv)", initialFilter="", options=options)
         if fname:
             self.file = fname
-            self.button.deleteLater()
+
+            restart = QAction(QIcon.fromTheme("edit-undo"), "&Restart",
+                              self)
+            restart.setShortcut("Ctrl+R")
+            restart.setStatusTip("Restart Plotting")
+            restart.triggered.connect(self.on_restart)
+
+            self.file_menu.addAction(restart)
+
             self.plot_graphs()
 
     @pyqtSlot()
     def on_quit_key(self):
         """Quit the application."""
+        if self.plots is not None:
+            self.plots.stop_anim()
         QCoreApplication.instance().quit()
 
     @pyqtSlot()
     def on_restart(self):
         """Clear the Figure and go back to data selection screen."""
-        print("restarting")
+        self.plots.stop_anim()
+
+        self.plots = None
+
+        self.centralWidget().deleteLater()
+
+        self.show()
 
     def plot_graphs(self) -> None:
         """Create the Plot with the opened file data."""
@@ -131,23 +153,15 @@ class App(QMainWindow):
 
         toolbar = NavigationToolbar(self.plots, self)
 
-        layout = QVBoxLayout()
-        widget = QWidget()
+        self.widget = QWidget()
+        vlayout = QVBoxLayout()
 
-        layout.addWidget(toolbar)
-        layout.addWidget(self.plots)
+        vlayout.addWidget(toolbar)
+        vlayout.addWidget(self.plots)
 
         # Create a placeholder widget to hold our toolbar and canvas.
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
-
-        restart = QAction(QIcon.fromTheme("edit-undo"), "&Restart",
-                          self)
-        restart.setShortcut("Ctrl+R")
-        restart.setStatusTip("Restart Plotting")
-        restart.triggered.connect(self.on_restart)
-
-        self.file_menu.addAction(restart)
+        self.widget.setLayout(vlayout)
+        self.setCentralWidget(self.widget)
 
         self.show()
 
@@ -214,7 +228,7 @@ class Plot(FigureCanvas):
         self.plt_3: Axes = self.fig.add_subplot(223)
         self.plt_4: Axes = self.fig.add_subplot(224)
 
-        self.x_vals = list(range(len(self.state_info_list)))
+        self.x_vals = np.arange(len(self.state_info_list))
 
         (plt_1_bars, self.mean_line, self.txt_dict) = self.format_plt_1()
         plt_2_bars: BarContainer = self.format_plt_2()
@@ -229,8 +243,7 @@ class Plot(FigureCanvas):
 
         frames: int = 385
 
-        # This doesn't work if FuncAnimation isn't assigned to a value,
-        anim = animation.FuncAnimation(
+        self.anim = FuncAnimation(
             self.fig, self.animate,
             init_func=self.init_anim_factory(),
             frames=frames, repeat=False, blit=True, interval=170)
@@ -241,9 +254,13 @@ class Plot(FigureCanvas):
         """Format the plot before rendering."""
         plt.style.use("seaborn-dark")
 
-    def format_plt(self):
+    def format_plt(self) -> None:
         """Format the plot after rendering."""
         self.fig.tight_layout()
+
+    def stop_anim(self) -> None:
+        """Stop the plots from updating."""
+        self.anim.event_source.stop()
 
     def init_anim_factory(self) -> Callable:
         """Create an init_anim function that returns the needed artists.
@@ -431,7 +448,7 @@ class Plot(FigureCanvas):
 
         self.plt_1.set_title("People per representative per state")
 
-        self.plt_1.grid(axis="y", which="major", lw=2)
+        self.plt_1.grid(axis="y", which="major", lw="hello")
         self.plt_1.grid(axis="y", which="minor", lw=0.75)
         self.plt_1.grid(axis="x", lw=0.75)
 
@@ -463,8 +480,8 @@ class Plot(FigureCanvas):
             0.6, 0.85, f"Geo. Mean: {geo_mean_pop_per_seat:,.2f}",
             transform=self.plt_1.transAxes)
 
-        mean_line: Line2D = self.plt_1.axhline(y=mean_pop_per_seat,
-                                               xmin=0.0, xmax=1.0, color="r")
+        mean_line: Line2D = self.plt_1.axhline(y=int(mean_pop_per_seat),
+                                               xmin=0, xmax=1, color="r")
 
         res_dict = {"seat_txt": seat_txt,
                     "state_txt": state_txt,

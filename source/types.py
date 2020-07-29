@@ -25,6 +25,7 @@ CsvStateInfo = List[str]
 
 PlotTextDict = Dict[str, Text]
 
+
 # class PlotTextDict(TypedDict):
 #     """dict with all the plot's text objects."""
 
@@ -42,7 +43,7 @@ PlotProps = Tuple[BarContainer, Line2D, PlotTextDict]
 PlotBarsDict = Dict[str, BarContainer]
 
 
-# TypedDict still doesn't work nicely with pyright.
+# TypedDict still doesn't work nicely with pyright/jedi/anything.
 # Calling .values() on a dist defaults to just object.
 # Type hinting for a custom class doesn't work
 # class PlotBarsDict(TypedDict):

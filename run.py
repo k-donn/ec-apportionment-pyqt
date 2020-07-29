@@ -13,13 +13,19 @@ from PyQt5.QtWidgets import QApplication
 
 from source import bar_chart
 
-if __name__ == "__main__":
+
+def main():
+    """Execute all code."""
     if "-h" in sys.argv or "--help" in sys.argv:
         print(__doc__)
-        exit()
+        sys.exit()
 
     app = QApplication(sys.argv)
 
     ex = bar_chart.App()
 
-    exit(app.exec_())
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()

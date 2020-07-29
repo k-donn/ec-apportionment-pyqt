@@ -159,7 +159,7 @@ def extract_priority(state_info_list: List[StateInfo]) -> List[float]:
 
 
 def extract_priority_tuple(state_info_tuple: Tuple[int, StateInfo]) -> float:
-    """Create a function to extract priority from the second part of an enumerated list.
+    """Create a function to extract the priority property.
 
     Example
     -------
