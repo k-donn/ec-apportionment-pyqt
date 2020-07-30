@@ -448,7 +448,7 @@ class Plot(FigureCanvas):
 
         self.plt_1.set_title("People per representative per state")
 
-        self.plt_1.grid(axis="y", which="major", lw="hello")
+        self.plt_1.grid(axis="y", which="major", lw=1)
         self.plt_1.grid(axis="y", which="minor", lw=0.75)
         self.plt_1.grid(axis="x", lw=0.75)
 
