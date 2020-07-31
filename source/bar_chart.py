@@ -117,7 +117,9 @@ class App(QMainWindow):
         if fname:
             self.file = fname
 
-            restart = QAction(QIcon.fromTheme("edit-undo"), "&Restart",
+            restart = QAction(QIcon.fromTheme("edit-undo",
+                                              QIcon("icon/edit-undo.png")),
+                              "&Restart",
                               self)
             restart.setShortcut("Ctrl+R")
             restart.setStatusTip("Restart Plotting")
