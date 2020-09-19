@@ -22,7 +22,7 @@ def main():
 
     app = QApplication(sys.argv)
 
-    ex = bar_chart.App()
+    charts = bar_chart.App()
 
     sys.exit(app.exec_())
 

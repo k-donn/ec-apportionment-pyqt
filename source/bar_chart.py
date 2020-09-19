@@ -1,7 +1,8 @@
 """Module for creating bar_chart animation."""
 # TODO
-# Add file->open menubar option
 # Validate CSV file
+# Add application icon
+# Add icons for all QActions
 
 
 import math
@@ -24,9 +25,9 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.ticker import FuncFormatter, MultipleLocator
 from PyQt5.QtCore import QCoreApplication, QRect, pyqtSlot
-from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QAction, QDesktopWidget, QFileDialog, QMainWindow,
-                             QPushButton, QShortcut, QVBoxLayout, QWidget)
+                             QPushButton, QVBoxLayout, QWidget)
 
 from .tools import (comma_format_int, extract_csv, extract_pop_per_rep,
                     extract_priority, extract_priority_tuple, extract_reps,
@@ -43,10 +44,11 @@ class App(QMainWindow):
     Methods
     -------
     ```python
-    initUI(self) -> None:
-    on_click(self) -> None:
-    on_quit_key(self) -> None:
+    init_file_menu(self) -> None:
+    init_ui(self) -> None:
+    on_quit(self) -> None:
     on_restart(self) -> None:
+    open_dialog(self) -> None:
     plot_graphs(self) -> None:
     ```
 
@@ -54,61 +56,79 @@ class App(QMainWindow):
     ----------
     ```python
     file: str
-    title: str
-    btn_w: int
-    btn_h: int
-    plots: Plot
-    widget: QWidget
-    menu_bar: QMenuBar
-    file_menu: QAction
+    main_plot: ECPlot
+    main_toolbar: NavigationToolbar
+    restart_action: QAction
+    open_action: QAction
+    quit_action: QAction
     button: QPushButton
-    shortcut_q: QShortcut
-    shortcut_w: QShortcut
+    file_menu: QMenu
     ```
     """
 
     def __init__(self):
         super().__init__()
 
-        self.file = ""
-        self.title = "CGP Grey spreadsheet"
+        self.file: str = None
 
-        self.btn_w = 150
-        self.btn_h = 75
+        self.main_plot: ECPlot = None
+        self.main_toolbar: NavigationToolbar = None
 
-        self.plots: Plot
+        self.restart_action: QAction = None
+        self.open_action: QAction = None
+        self.quit_action: QAction = None
 
-        # The central widget
-        self.widget: QWidget
+        self.button: QPushButton = None
 
-        self.menu_bar = self.menuBar()
-
-        self.file_menu = self.menu_bar.addMenu("&File")
+        self.file_menu = self.menuBar().addMenu("&File")
 
         self.init_ui()
 
     def init_ui(self) -> None:
         """Create the initial window and register event handlers."""
-        self.setWindowTitle(self.title)
+        self.setWindowTitle("CGP Grey spreadsheet")
+
+        self.init_file_menu()
 
         screen_geo: QRect = QDesktopWidget().screenGeometry()
 
+        btn_w = 150
+        btn_h = 75
+
         self.button = QPushButton("Select Data", self)
-        self.button.move((screen_geo.width() // 2) - (self.btn_w // 2),
-                         (screen_geo.height() // 2) - (self.btn_h // 2))
-        self.button.resize(self.btn_w, self.btn_h)
-        self.button.clicked.connect(self.on_click)
-
-        self.shortcut_q = QShortcut(QKeySequence("Ctrl+Q"), self)
-        self.shortcut_w = QShortcut(QKeySequence("Ctrl+W"), self)
-
-        self.shortcut_q.activated.connect(self.on_quit_key)
-        self.shortcut_w.activated.connect(self.on_quit_key)
+        self.button.move((screen_geo.width() // 2) - (btn_w // 2),
+                         (screen_geo.height() // 2) - (btn_h // 2))
+        self.button.resize(btn_w, btn_h)
+        self.button.clicked.connect(self.open_action.trigger)
 
         self.showMaximized()
 
+    def init_file_menu(self):
+        """Add all actions to the "file" menu for the app."""
+        self.open_action = QAction(
+            QIcon.fromTheme("fileopen"), "&Open", self)
+        self.open_action.setShortcut("Ctrl+O")
+        self.open_action.setStatusTip("Open Day One JSON file")
+        self.open_action.triggered.connect(self.open_dialog)
+
+        restart_icon = QIcon.fromTheme("edit-undo",
+                                       QIcon("icon/edit-undo.png"))
+
+        self.restart_action = QAction(restart_icon, "&Restart", self)
+        self.restart_action.setShortcut("Ctrl+R")
+        self.restart_action.setStatusTip("Restart Plotting")
+        self.restart_action.triggered.connect(self.on_restart)
+
+        self.quit_action = QAction(QIcon.fromTheme("exit"), "&Quit", self)
+        self.quit_action.setShortcuts(["Ctrl+Q", "Ctrl+W"])
+        self.quit_action.setStatusTip("Quit Application")
+        self.quit_action.triggered.connect(self.on_quit)
+
+        self.file_menu.addAction(self.open_action)
+        self.file_menu.addAction(self.quit_action)
+
     @pyqtSlot()
-    def on_click(self) -> None:
+    def open_dialog(self) -> None:
         """Create the file dialog and pass the name to plot_graphs."""
         options = QFileDialog.DontUseNativeDialog
         fname, _ = QFileDialog.getOpenFileName(
@@ -117,33 +137,30 @@ class App(QMainWindow):
         if fname:
             self.file = fname
 
-            restart = QAction(QIcon.fromTheme("edit-undo",
-                                              QIcon("icon/edit-undo.png")),
-                              "&Restart",
-                              self)
-            restart.setShortcut("Ctrl+R")
-            restart.setStatusTip("Restart Plotting")
-            restart.triggered.connect(self.on_restart)
+            self.file_menu.removeAction(self.open_action)
 
-            self.file_menu.addAction(restart)
+            self.file_menu.insertAction(self.quit_action, self.restart_action)
 
             self.plot_graphs()
 
     @pyqtSlot()
-    def on_quit_key(self):
+    def on_quit(self):
         """Quit the application."""
-        if self.plots is not None:
-            self.plots.stop_anim()
+        if self.main_plot is not None:
+            self.main_plot.stop_anim()
+
         QCoreApplication.instance().quit()
 
     @pyqtSlot()
     def on_restart(self):
         """Clear the Figure and go back to data selection screen."""
-        self.plots.stop_anim()
-
-        self.plots = None
+        self.main_plot.stop_anim()
 
         self.centralWidget().deleteLater()
+
+        self.file_menu.insertAction(self.quit_action, self.open_action)
+
+        self.file_menu.removeAction(self.restart_action)
 
         self.show()
 
@@ -151,24 +168,25 @@ class App(QMainWindow):
         """Create the Plot with the opened file data."""
         self.showMaximized()
 
-        self.plots = Plot(parent=self, file=self.file)
+        self.main_plot = ECPlot(parent=self, file=self.file)
 
-        toolbar = NavigationToolbar(self.plots, self)
+        self.main_toolbar = NavigationToolbar(self.main_plot, self)
 
-        self.widget = QWidget()
-        vlayout = QVBoxLayout()
+        container = QWidget()
 
-        vlayout.addWidget(toolbar)
-        vlayout.addWidget(self.plots)
+        main_layout = QVBoxLayout()
 
-        # Create a placeholder widget to hold our toolbar and canvas.
-        self.widget.setLayout(vlayout)
-        self.setCentralWidget(self.widget)
+        main_layout.addWidget(self.main_toolbar)
+        main_layout.addWidget(self.main_plot)
+
+        container.setLayout(main_layout)
+
+        self.setCentralWidget(container)
 
         self.show()
 
 
-class Plot(FigureCanvas):
+class ECPlot(FigureCanvas):
     """Manage the plotting of all four subplots.
 
     Methods
