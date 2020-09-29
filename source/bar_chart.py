@@ -87,6 +87,7 @@ class App(QMainWindow):
     def init_ui(self) -> None:
         """Create the initial window and register event handlers."""
         self.setWindowTitle("CGP Grey spreadsheet")
+        self.setWindowIcon(QIcon("icons/combined.png"))
 
         self.init_file_menu()
 
@@ -112,7 +113,7 @@ class App(QMainWindow):
         self.open_action.triggered.connect(self.open_dialog)
 
         restart_icon = QIcon.fromTheme("edit-undo",
-                                       QIcon("icon/edit-undo.png"))
+                                       QIcon("icons/edit-undo.png"))
 
         self.restart_action = QAction(restart_icon, "&Restart", self)
         self.restart_action.setShortcut("Ctrl+R")
