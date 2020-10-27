@@ -1,8 +1,6 @@
 """Module for creating bar_chart animation."""
 # TODO
 # Validate CSV file
-# Add application icon
-# Add icons for all QActions
 
 
 import math
@@ -112,8 +110,7 @@ class App(QMainWindow):
         self.open_action.setStatusTip("Open Day One JSON file")
         self.open_action.triggered.connect(self.open_dialog)
 
-        restart_icon = QIcon.fromTheme("edit-undo",
-                                       QIcon("icons/edit-undo.png"))
+        restart_icon = QIcon.fromTheme("edit-undo")
 
         self.restart_action = QAction(restart_icon, "&Restart", self)
         self.restart_action.setShortcut("Ctrl+R")

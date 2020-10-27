@@ -43,4 +43,4 @@ The CSV file should have a header.
 
 ## TODO
 
--   Use QTimer instead of FuncAnimation
+-   [ ] Use QTimer instead of FuncAnimation
