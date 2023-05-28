@@ -23,9 +23,6 @@ Coming soon!
 
 ## Running
 
--   Create `conda` env from `environment.yml` (see [Install Conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html))
--   `requirements.txt` is just for GitHub dependency tracking
--   From the root of the folder,
 
 ```bash
 python3.8 ./run.py
